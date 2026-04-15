@@ -417,7 +417,7 @@ void MicroBooNE_BNB_NumuCC1Pipm_2025_XSec_nu::LoadBinDefinitions() {
     std::string all_cuts = bin_def.substr(
       bin_def.find(delimiter) + delimiter.length() );
 
-    // Create an empty vector of MyCut objects to start defining the new bin
+    // Create an empty vector of MyCutPipm objects to start defining the new bin
     fBinDefinitions.emplace_back();
 
     // Loop over the rest of the cuts and check each one
@@ -478,7 +478,7 @@ void MicroBooNE_BNB_NumuCC1Pipm_2025_XSec_nu::LoadBinDefinitions() {
       else if ( var_name == "mc_theta_mu_pi" ) {
         getter = [=]( FitEvent* ev ) -> double {
           const TVector3& p3mu = ev->GetHMFSParticle( MU_MINUS )->fP.Vect();
-          const TVector3& p3pi;
+          TVector3 p3pi;
             if ( ev->NumFSParticle( PION_PLUS ) == 1 ) {
                 p3pi = ev->GetHMFSParticle( PION_PLUS )->fP.Vect();
             }

@@ -29,8 +29,8 @@ class MicroBooNEBlockHandler;
 
 class TH2D;
 
-struct MyCut {
-  MyCut( std::function< double(FitEvent*) > getter,
+struct MyCutPipm {
+  MyCutPipm( std::function< double(FitEvent*) > getter,
     std::function< bool(double) > tester ) : getter_( getter ),
     tester_( tester ) {}
 
@@ -85,7 +85,7 @@ private:
 
   // Each bin is defined as a series of cuts that are applied to a FitEvent to
   // determine whether it belongs
-  std::vector< std::vector< MyCut > > fBinDefinitions;
+  std::vector< std::vector< MyCutPipm > > fBinDefinitions;
 
   // Temporary storage for the index of each bin that passed all cuts for any
   // particular event
