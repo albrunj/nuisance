@@ -1,43 +1,72 @@
-0 11 1 "$\cos\theta_\mu$" ""
-0 -1 -0.27
-1 -0.27 0.29
-2 0.29 0.46
-3 0.46 0.58
-4 0.58 0.67
-5 0.67 0.77
-6 0.77 0.82
-7 0.82 0.88
-8 0.88 0.93
-9 0.93 0.97
-10 0.97 1
-
-1 5 1 "$p_\mu$" "GeV$/c$"
-11 0.15 0.23
-12 0.23 0.32
-13 0.32 0.45
-14 0.45 0.66
-15 0.66 inf
-
-2 7 1 "$\cos\theta_\pi$" ""
-16 -1 -0.47
-17 -0.47 0
-18 0 0.39
-19 0.39 0.65
-20 0.65 0.84
-21 0.84 0.93
-22 0.93 1
-
-3 4 1 "$p_\pi$" "GeV$/c$"
-23 0.10 0.16
-24 0.16 0.19
-25 0.19 0.22
-26 0.22 inf
-
-4 7 1 "$\theta_{\mu\pi}$" "rad"
-27 0 0.49
-28 0.49 0.93
-29 0.93 1.26
-30 1.26 1.57
-31 1.57 1.88
-32 1.88 2.21
-33 2.21 2.65
+ALL
+stv_tree
+34
+0 0 "mc_is_signal && mc_p3_mu.CosTheta() >= -1 && mc_p3_mu.CosTheta() < -0.27"
+0 0 "mc_is_signal && mc_p3_mu.CosTheta() >= -0.27 && mc_p3_mu.CosTheta() < 0.29"
+0 0 "mc_is_signal && mc_p3_mu.CosTheta() >= 0.29 && mc_p3_mu.CosTheta() < 0.46"
+0 0 "mc_is_signal && mc_p3_mu.CosTheta() >= 0.46 && mc_p3_mu.CosTheta() < 0.58"
+0 0 "mc_is_signal && mc_p3_mu.CosTheta() >= 0.58 && mc_p3_mu.CosTheta() < 0.67"
+0 0 "mc_is_signal && mc_p3_mu.CosTheta() >= 0.67 && mc_p3_mu.CosTheta() < 0.77"
+0 0 "mc_is_signal && mc_p3_mu.CosTheta() >= 0.77 && mc_p3_mu.CosTheta() < 0.82"
+0 0 "mc_is_signal && mc_p3_mu.CosTheta() >= 0.82 && mc_p3_mu.CosTheta() < 0.88"
+0 0 "mc_is_signal && mc_p3_mu.CosTheta() >= 0.88 && mc_p3_mu.CosTheta() < 0.93"
+0 0 "mc_is_signal && mc_p3_mu.CosTheta() >= 0.93 && mc_p3_mu.CosTheta() < 0.97"
+0 0 "mc_is_signal && mc_p3_mu.CosTheta() >= 0.97 && mc_p3_mu.CosTheta() < 1"
+0 1 "mc_is_signal && mc_p3_mu.Mag() >= 0.15 && mc_p3_mu.Mag() < 0.23"
+0 1 "mc_is_signal && mc_p3_mu.Mag() >= 0.23 && mc_p3_mu.Mag() < 0.32"
+0 1 "mc_is_signal && mc_p3_mu.Mag() >= 0.32 && mc_p3_mu.Mag() < 0.45"
+0 1 "mc_is_signal && mc_p3_mu.Mag() >= 0.45 && mc_p3_mu.Mag() < 0.66"
+0 1 "mc_is_signal && mc_p3_mu.Mag() >= 0.66"
+0 2 "mc_is_signal && mc_p3_pi.CosTheta() >= -1 && mc_p3_pi.CosTheta() < -0.47"
+0 2 "mc_is_signal && mc_p3_pi.CosTheta() >= -0.47 && mc_p3_pi.CosTheta() < 0"
+0 2 "mc_is_signal && mc_p3_pi.CosTheta() >= 0 && mc_p3_pi.CosTheta() < 0.39"
+0 2 "mc_is_signal && mc_p3_pi.CosTheta() >= 0.39 && mc_p3_pi.CosTheta() < 0.65"
+0 2 "mc_is_signal && mc_p3_pi.CosTheta() >= 0.65 && mc_p3_pi.CosTheta() < 0.84"
+0 2 "mc_is_signal && mc_p3_pi.CosTheta() >= 0.84 && mc_p3_pi.CosTheta() < 0.93"
+0 2 "mc_is_signal && mc_p3_pi.CosTheta() >= 0.93 && mc_p3_pi.CosTheta() < 1"
+0 3 "mc_is_signal && mc_p3_pi.Mag() >= 0.10 && mc_p3_pi.Mag() < 0.16"
+0 3 "mc_is_signal && mc_p3_pi.Mag() >= 0.16 && mc_p3_pi.Mag() < 0.19"
+0 3 "mc_is_signal && mc_p3_pi.Mag() >= 0.19 && mc_p3_pi.Mag() < 0.22"
+0 3 "mc_is_signal && mc_p3_pi.Mag() >= 0.22"
+0 4 "mc_is_signal && mc_theta_mu_pi >= 0 && mc_theta_mu_pi < 0.49"
+0 4 "mc_is_signal && mc_theta_mu_pi >= 0.49 && mc_theta_mu_pi < 0.93"
+0 4 "mc_is_signal && mc_theta_mu_pi >= 0.93 && mc_theta_mu_pi < 1.26"
+0 4 "mc_is_signal && mc_theta_mu_pi >= 1.26 && mc_theta_mu_pi < 1.57"
+0 4 "mc_is_signal && mc_theta_mu_pi >= 1.57 && mc_theta_mu_pi < 1.88"
+0 4 "mc_is_signal && mc_theta_mu_pi >= 1.88 && mc_theta_mu_pi < 2.21"
+0 4 "mc_is_signal && mc_theta_mu_pi >= 2.21 && mc_theta_mu_pi < 2.65"
+34
+0 0 "sel_CC1pi && p3_mu.CosTheta() >= -1 && p3_mu.CosTheta() < -0.27"
+0 0 "sel_CC1pi && p3_mu.CosTheta() >= -0.27 && p3_mu.CosTheta() < 0.29"
+0 0 "sel_CC1pi && p3_mu.CosTheta() >= 0.29 && p3_mu.CosTheta() < 0.46"
+0 0 "sel_CC1pi && p3_mu.CosTheta() >= 0.46 && p3_mu.CosTheta() < 0.58"
+0 0 "sel_CC1pi && p3_mu.CosTheta() >= 0.58 && p3_mu.CosTheta() < 0.67"
+0 0 "sel_CC1pi && p3_mu.CosTheta() >= 0.67 && p3_mu.CosTheta() < 0.77"
+0 0 "sel_CC1pi && p3_mu.CosTheta() >= 0.77 && p3_mu.CosTheta() < 0.82"
+0 0 "sel_CC1pi && p3_mu.CosTheta() >= 0.82 && p3_mu.CosTheta() < 0.88"
+0 0 "sel_CC1pi && p3_mu.CosTheta() >= 0.88 && p3_mu.CosTheta() < 0.93"
+0 0 "sel_CC1pi && p3_mu.CosTheta() >= 0.93 && p3_mu.CosTheta() < 0.97"
+0 0 "sel_CC1pi && p3_mu.CosTheta() >= 0.97 && p3_mu.CosTheta() < 1"
+0 1 "sel_CC1pi && p3_mu.Mag() >= 0.15 && p3_mu.Mag() < 0.23"
+0 1 "sel_CC1pi && p3_mu.Mag() >= 0.23 && p3_mu.Mag() < 0.32"
+0 1 "sel_CC1pi && p3_mu.Mag() >= 0.32 && p3_mu.Mag() < 0.45"
+0 1 "sel_CC1pi && p3_mu.Mag() >= 0.45 && p3_mu.Mag() < 0.66"
+0 1 "sel_CC1pi && p3_mu.Mag() >= 0.66"
+0 2 "sel_CC1pi && p3_pi.CosTheta() >= -1 && p3_pi.CosTheta() < -0.47"
+0 2 "sel_CC1pi && p3_pi.CosTheta() >= -0.47 && p3_pi.CosTheta() < 0"
+0 2 "sel_CC1pi && p3_pi.CosTheta() >= 0 && p3_pi.CosTheta() < 0.39"
+0 2 "sel_CC1pi && p3_pi.CosTheta() >= 0.39 && p3_pi.CosTheta() < 0.65"
+0 2 "sel_CC1pi && p3_pi.CosTheta() >= 0.65 && p3_pi.CosTheta() < 0.84"
+0 2 "sel_CC1pi && p3_pi.CosTheta() >= 0.84 && p3_pi.CosTheta() < 0.93"
+0 2 "sel_CC1pi && p3_pi.CosTheta() >= 0.93 && p3_pi.CosTheta() < 1"
+0 3 "sel_CC1pi && p3_pi.Mag() >= 0.10 && p3_pi.Mag() < 0.16"
+0 3 "sel_CC1pi && p3_pi.Mag() >= 0.16 && p3_pi.Mag() < 0.19"
+0 3 "sel_CC1pi && p3_pi.Mag() >= 0.19 && p3_pi.Mag() < 0.22"
+0 3 "sel_CC1pi && p3_pi.Mag() >= 0.22"
+0 4 "sel_CC1pi && theta_mu_pi >= 0 && theta_mu_pi < 0.49"
+0 4 "sel_CC1pi && theta_mu_pi >= 0.49 && theta_mu_pi < 0.93"
+0 4 "sel_CC1pi && theta_mu_pi >= 0.93 && theta_mu_pi < 1.26"
+0 4 "sel_CC1pi && theta_mu_pi >= 1.26 && theta_mu_pi < 1.57"
+0 4 "sel_CC1pi && theta_mu_pi >= 1.57 && theta_mu_pi < 1.88"
+0 4 "sel_CC1pi && theta_mu_pi >= 1.88 && theta_mu_pi < 2.21"
+0 4 "sel_CC1pi && theta_mu_pi >= 2.21 && theta_mu_pi < 2.65"
