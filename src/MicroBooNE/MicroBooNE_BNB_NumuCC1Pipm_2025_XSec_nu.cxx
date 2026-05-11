@@ -21,6 +21,7 @@
 
 #include "InteractionModes.h"
 #include "MicroBooNEBlockHandler.h"
+#include "MicroBooNEHelper.h"
 #include "MicroBooNE_BNB_NumuCC1Pipm_2025_XSec_nu.h"
 #include "TMatrixD.h"
 
@@ -38,165 +39,6 @@ namespace {
   constexpr double MUON_MASS = 0.10565837; // GeV
   constexpr double PION_MASS = 0.13957039; // GeV
   constexpr double BINDING_ENERGY = 0.02478; // 40Ar, GeV
-
-  void compute_stvs( const TVector3& p3mu, const TVector3& p3pi,
-    double& delta_pT, double& delta_phiT, double& delta_alphaT,
-    double& delta_pL, double& pn, double& delta_pTx, double& delta_pTy )
-  {
-    delta_pT = (p3mu + p3pi).Perp();
-
-    delta_phiT = std::acos( (-p3mu.X()*p3pi.X() - p3mu.Y()*p3pi.Y())
-      / (p3mu.XYvector().Mod() * p3pi.XYvector().Mod()) );
-
-    TVector2 delta_pT_vec = (p3mu + p3pi).XYvector();
-    delta_alphaT = std::acos( (-p3mu.X()*delta_pT_vec.X()
-      - p3mu.Y()*delta_pT_vec.Y())
-      / (p3mu.XYvector().Mod() * delta_pT_vec.Mod()) );
-
-    double Emu = std::sqrt(std::pow(MUON_MASS, 2) + p3mu.Mag2());
-    double Epi = std::sqrt(std::pow(PION_MASS, 2) + p3pi.Mag2());
-    double R = TARGET_MASS + p3mu.Z() + p3pi.Z() - Emu - Epi;
-
-    // Estimated mass of the final remnant nucleus (CCQE assumption)
-    double mf = TARGET_MASS - NEUTRON_MASS + BINDING_ENERGY;
-    delta_pL = 0.5*R - (std::pow(mf, 2) + std::pow(delta_pT, 2)) / (2.*R);
-
-    pn = std::sqrt( std::pow(delta_pL, 2) + std::pow(delta_pT, 2) );
-
-    // Components of the 2D delta_pT vector (see arXiv:1910.08658)
-
-    // We assume that the neutrino travels along the +z direction (also done
-    // in the other expressions above)
-    TVector3 zUnit( 0., 0., 1. );
-
-    // Defines the x direction for the components of the delta_pT vector
-    TVector2 xTUnit = zUnit.Cross( p3mu ).XYvector().Unit();
-
-    delta_pTx = xTUnit.X()*delta_pT_vec.X() + xTUnit.Y()*delta_pT_vec.Y();
-
-    // Defines the y direction for the components of the delta_T vector
-    TVector2 yTUnit = ( -p3mu ).XYvector().Unit();
-
-    delta_pTy = yTUnit.X()*delta_pT_vec.X() + yTUnit.Y()*delta_pT_vec.Y();
-  }
-
-  double compute_stvs( FitEvent* ev, const std::string& var ) {
-    TVector3 p3mu = ev->GetHMFSParticle( MU_MINUS )->fP.Vect();
-    TVector3 p3pi;
-    if (ev->NumFSParticle(PION_PLUS)==1) {
-        p3pi = ev->GetHMFSParticle( PION_PLUS )->fP.Vect();
-    }
-    else if (ev->NumFSParticle(PION_MINUS)==1) {
-        p3pi = ev->GetHMFSParticle( PION_MINUS )->fP.Vect();
-    }
-    else {
-        NUIS_ERR(FTL, "Event does not contain exactly one pion");
-        return 0.;
-    }
-
-    // Convert to GeV
-    p3mu *= 1e-3;
-    p3pi *= 1e-3;
-
-    double delta_pT, delta_phiT, delta_alphaT, delta_pL;
-    double pn, delta_pTx, delta_pTy;
-
-    compute_stvs( p3mu, p3pi, delta_pT, delta_phiT, delta_alphaT,
-      delta_pL, pn, delta_pTx, delta_pTy );
-
-    if ( var == "delta_pT" ) return delta_pT;
-    else if ( var == "delta_phiT" ) return delta_phiT;
-    else if ( var == "delta_alphaT" ) return delta_alphaT;
-    else if ( var == "delta_pL" ) return delta_pL;
-    else if ( var == "pn" ) return pn;
-    else if ( var == "delta_pTx" ) return delta_pTx;
-    else if ( var == "delta_pTy" ) return delta_pTy;
-    return 0.;
-  }
-
-  // Loads a matrix from a text file following the format used
-  // in the data release for this MicroBooNE measurement
-  TMatrixD load_matrix( const std::string& input_file_name ) {
-
-    // Get the table of matrix element values
-    std::ifstream matrix_table_file( input_file_name );
-
-    // Peek at the file contents to decide whether we're working with
-    // a matrix or a column vector
-    std::string dummy;
-    matrix_table_file >> dummy >> dummy >> dummy;
-    bool is_matrix = ( dummy == "numYbins" );
-
-    // Return to the beginning of the file for parsing
-    matrix_table_file.seekg( 0 );
-
-    // Get the matrix or vector dimensions from the header line(s)
-    int num_x_bins, num_y_bins;
-
-    matrix_table_file >> dummy >> num_x_bins;
-    if ( is_matrix ) {
-      matrix_table_file >> dummy >> num_y_bins;
-
-      // Skip the next header line which contains the data column names
-      std::getline( matrix_table_file, dummy );
-    }
-    else {
-      num_y_bins = 1;
-    }
-
-    // Create a TMatrixD with the correct dimensions
-    TMatrixD matrix( num_x_bins, num_y_bins );
-
-    // Parse its contents from the remaining lines
-    std::string line;
-    while ( std::getline(matrix_table_file, line) ) {
-      int bin1, bin2;
-      double element;
-
-      std::stringstream temp_ss( line );
-      temp_ss >> bin1;
-      if ( is_matrix ) {
-        temp_ss >> bin2;
-      }
-      else {
-        bin2 = 0;
-      }
-      temp_ss >> element;
-
-      if ( bin1 < num_x_bins && bin2 < num_y_bins ) {
-        matrix( bin1, bin2 ) = element;
-      }
-    }
-
-    return matrix;
-  }
-
-  // Helper function that converts a TMatrixD into the TMatrixDSym*
-  // needed to initialize some class members inherited from Measurement1D.
-  // Assumes that the input is a square matrix (TODO: add error handling).
-  TMatrixDSym* to_symmetric_matrix( const TMatrixD& mat ) {
-    int num_rows = mat.GetNrows();
-    TMatrixDSym* sym = new TMatrixDSym( num_rows );
-    for ( int a = 0; a < num_rows; ++a ) {
-      for ( int b = 0; b < num_rows; ++b ) {
-        sym->operator()( a, b ) = mat( a, b );
-      }
-    }
-    return sym;
-  }
-
-  // Helper function that creates a TH1D from a TMatrixD. Currently
-  // assumes that the input matrix has a single column (TODO: Add
-  // error handling)
-  TH1D* to_histogram( const TMatrixD& vec ) {
-    int num_rows = vec.GetNrows();
-    auto* hist = new TH1D( "vec_hist", "", num_rows, 0., num_rows );
-    for ( int a = 0; a < num_rows; ++a ) {
-      double value = vec( a, 0 );
-      hist->SetBinContent( a + 1, value ); // ROOT bin indices are one-based
-    }
-    return hist;
-  }
 
 }
 
@@ -240,14 +82,14 @@ MicroBooNE_BNB_NumuCC1Pipm_2025_XSec_nu
     + "/MicroBooNE/BNB_NumuCC1Pipm_2025/mat_table_add_smear.txt" );
 
   // Load the additional smearing matrix
-  TMatrixD A_C = load_matrix( file_name_AC );
+  TMatrixD A_C = MicroBooNEHelper::load_matrix( file_name_AC );
   fAddSmear = std::make_shared< TMatrixD >( A_C );
 
   // Load the measured data points
   std::string file_name_data( FitPar::GetDataBase()
     + "/MicroBooNE/BNB_NumuCC1Pipm_2025/vec_table_unfolded_signal.txt" );
-  TMatrixD temp_data_mat = load_matrix( file_name_data );
-  fDataHist = to_histogram( temp_data_mat );
+  TMatrixD temp_data_mat = MicroBooNEHelper::load_matrix( file_name_data );
+  fDataHist = MicroBooNEHelper::to_histogram( temp_data_mat );
 
   fDataHist->SetNameTitle( (fSettings.GetName() + "_data").c_str(),
     fSettings.GetFullTitles().c_str() );
@@ -255,12 +97,12 @@ MicroBooNE_BNB_NumuCC1Pipm_2025_XSec_nu
   // Also retrieve the total covariance matrix for the measurement
   std::string cov_file_name( FitPar::GetDataBase()
     + "/MicroBooNE/BNB_NumuCC1Pipm_2025/mat_table_cov_total.txt" );
-  auto temp_cov_matrix = load_matrix( cov_file_name );
-  fFullCovar = to_symmetric_matrix( temp_cov_matrix );
+  auto temp_cov_matrix = MicroBooNEHelper::load_matrix( cov_file_name );
+  fFullCovar = MicroBooNEHelper::to_symmetric_matrix( temp_cov_matrix );
 
   // Now invert the covariance matrix and store the result
   temp_cov_matrix.Invert();
-  covar = to_symmetric_matrix( temp_cov_matrix );
+  covar = MicroBooNEHelper::to_symmetric_matrix( temp_cov_matrix );
 
   //fDecomp = StatUtils::GetDecomp( fFullCovar );
   TDecompChol chol( *fFullCovar );
@@ -534,8 +376,22 @@ void MicroBooNE_BNB_NumuCC1Pipm_2025_XSec_nu::FillHistograms() {
 }
 
 void MicroBooNE_BNB_NumuCC1Pipm_2025_XSec_nu::ConvertEventRates() {
+  //trouble shooting
+  std::cout << "Before NEvents = " << fNEvents << std::endl;
+  std::cout << "Before Raw MC integral = " << fMCHist->Integral() << std::endl;
+  std::cout << "Before Width integral = " << fMCHist->Integral("width") << std::endl;
+  std::cout << "Before Scale factor = " << fScaleFactor << std::endl;
+  std::cout << "before After AC integral = " << fMCHistWithAC->Integral() << std::endl;
+
   // Do the standard conversion
   Measurement1D::ConvertEventRates();
+
+  //trouble shooting
+  std::cout << "after NEvents = " << fNEvents << std::endl;
+  std::cout << "after Raw MC integral = " << fMCHist->Integral() << std::endl;
+  std::cout << "after Width integral = " << fMCHist->Integral("width") << std::endl;
+  std::cout << "after Scale factor = " << fScaleFactor << std::endl;
+  std::cout << "after After AC integral = " << fMCHistWithAC->Integral() << std::endl;
 
   // Clone the binning from the MC histogram
   fMCHistWithAC.reset(
@@ -596,120 +452,9 @@ double MicroBooNE_BNB_NumuCC1Pipm_2025_XSec_nu::GetLikelihood() {
 void MicroBooNE_BNB_NumuCC1Pipm_2025_XSec_nu::Write( std::string drawOpt ) {
   // Write the standard information
   Measurement1D::Write( drawOpt );
+  MicroBooNEHelper::WriteResults(fSettings.GetName(), fDataHist, fMCHistWithAC.get(),
+    covar, fBlockHandler, fMCHist_Slices, fMCModeHists_Slices, fMCHist_Modes);
 
-  // To start extra chi-squared calculations, create a mask that excludes
-  // everything. Note that bins are kept if the mask entry is zero, and
-  // discarded otherwise.
-  int num_bins = fDataHist->GetNbinsX();
-  TH1I mask_all( "mask_all", "mask all", num_bins, 0., num_bins );
-  mask_all.SetDirectory( nullptr );
-  for ( int b = 1; b <= num_bins; ++b ) mask_all.SetBinContent( b, 1 );
-
-  // Compute chi-squared scores for each block of bins separately using
-  // masks. Store the results in TNamed objects in the output
-  // file.
-  std::shared_ptr< TH1I > block_mask;
-  for ( const auto& [ block_idx, bin_vec ] : fBlockHandler->fBlockBins ) {
-    // Clone the exclude-everything mask and zero out bins that belong
-    // to the current block (thus including them)
-    block_mask.reset(
-      dynamic_cast< TH1I* >( mask_all.Clone("block_mask") )
-    );
-
-    // Global bin indices are zero-based, while the ROOT histogram bins
-    // are one-based, so we correct for this here
-    for ( int b : bin_vec ) block_mask->SetBinContent( b + 1, 0 );
-
-    // Compute the chi-squared statistic for the current block using the mask
-    double chi2 = StatUtils::GetChi2FromCov( fDataHist, fMCHistWithAC.get(),
-      covar, block_mask.get(), 1.0, 1.0, nullptr );
-
-    // Create a TNamed object to store the result. We use a TNamed so that we
-    // can store the chi^2 value and number of bins together for convenient
-    // viewing
-    std::string param_name = fSettings.GetName() + "_Block"
-      + std::to_string( block_idx ) + "_Chi2";
-    std::string chi2_per_bin_str = std::to_string( chi2 )
-      + " / " + std::to_string( bin_vec.size() );
-    TNamed chi2_param( param_name.c_str(), chi2_per_bin_str.c_str() );
-
-    chi2_param.Write();
-  }
-
-  // Now we follow a similar procedure to compute and store chi-squared values
-  // for each individual slice histogram in multi-slice blocks
-  std::shared_ptr< TH1I > slice_mask;
-  int num_slices = fBlockHandler->fHists.size();
-  for ( int s = 0u; s < num_slices; ++s ) {
-
-    // Before doing anything else, write the histograms themselves for the
-    // current slice to the output file
-    fBlockHandler->fHists.at( s )->Write(); // data slice histogram
-    fMCHist_Slices.at( s )->Write(); // total MC slice histogram
-    for ( int m : fMCHist_Modes->fmodes ) {
-      // MC slice histogram for mode m
-      fMCModeHists_Slices.at( m ).at( s )->Write();
-    }
-
-    // Find the block and slice number within the block for the current slice
-    // histogram
-    int block_idx = -1; // dummy value
-    int slice_idx = -1; // dummy value
-    for ( const auto& [ bl, hist_idx_vec ] : fBlockHandler->fBlockHists ) {
-      for ( size_t h = 0u; h < hist_idx_vec.size(); ++h ) {
-        int h_idx = hist_idx_vec.at( h );
-        if ( h_idx == s ) {
-          block_idx = bl;
-          slice_idx = h;
-        }
-      }
-    }
-
-    // NOTE: This continue statement has been removed since some 1D blocks
-    // include underflow or overflow bins that don't show up in their
-    // slice histogram. In some cases, the user may want to see both
-    // values, so it is easiest just to output all the information.
-    //
-    // OLD: If this is a 1D block, then there is only a single slice, and we
-    // have already computed a suitable chi^2 score in the block-by-block
-    // results above. We can therefore skip to the next slice.
-    //if ( fBlockHandler->fBlockHists.size() <= 1u ) continue;
-
-    // Clone the exclude-everything mask and zero out bins that belong
-    // to the current slice (thus including them)
-    slice_mask.reset(
-      dynamic_cast< TH1I* >( mask_all.Clone("slice_mask") )
-    );
-
-    int num_unmasked_bins = 0;
-    for ( const auto& [ mk, mv ] : fBlockHandler->fBinMap ) {
-      // Unmask only bins that belong to the current slice histogram
-      int hist_index = mv.histIdx;
-      if ( hist_index != s ) continue;
-      // Do the unmasking, taking into account the one-based indexing
-      // of the ROOT histograms and the zero-based bin indices from the table
-      // of block definitions
-      int global_bin = mk;
-      slice_mask->SetBinContent( global_bin + 1, 0 );
-      ++num_unmasked_bins;
-    }
-
-    // Compute the chi-squared statistic for the current block using the mask
-    double chi2 = StatUtils::GetChi2FromCov( fDataHist, fMCHistWithAC.get(),
-      covar, slice_mask.get(), 1.0, 1.0, nullptr );
-
-    // Create a TNamed object to store the result. We use a TNamed so that we
-    // can store the chi^2 value and number of bins together for convenient
-    // viewing
-    std::string param_name = fSettings.GetName() + "_Block"
-      + std::to_string( block_idx ) + "_Slice"
-      + std::to_string( slice_idx ) + "_Chi2";
-    std::string chi2_per_bin_str = std::to_string( chi2 )
-      + " / " + std::to_string( num_unmasked_bins );
-    TNamed chi2_param( param_name.c_str(), chi2_per_bin_str.c_str() );
-
-    chi2_param.Write();
-  }
 }
 
 void MicroBooNE_BNB_NumuCC1Pipm_2025_XSec_nu::PrepareSlices() {

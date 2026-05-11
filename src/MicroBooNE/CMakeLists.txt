@@ -31,6 +31,7 @@ set(MicroBooNE_Impl_Files
   MicroBooNE_BNB_NumuCC0Pi_2025_XSec_nu.cxx
   MicroBooNE_BNB_NumuCC1Pipm_2025_XSec_nu.cxx
   MicroBooNEBlockHandler.cxx
+  MicroBooNEHelper.cxx
 )
 
 set(MicroBooNE_Hdr_Files
@@ -48,6 +49,7 @@ set(MicroBooNE_Hdr_Files
   MicroBooNE_BNB_NumuCC0Pi_2025_XSec_nu.h
   MicroBooNE_BNB_NumuCC1Pipm_2025_XSec_nu.h
   MicroBooNEBlockHandler.h
+  MicroBooNEHelper.h
 )
 
 add_library(MicroBooNE SHARED ${MicroBooNE_Impl_Files})

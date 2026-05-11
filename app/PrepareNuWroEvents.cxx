@@ -64,7 +64,7 @@ TH1D *F2D(TH1F *f) {
               << d->GetXaxis()->GetBinUpEdge(bi_it) << ": "
               << d->GetBinContent(bi_it) << std::endl;
   }
-  delete bins;
+  delete[] bins;
   return d;
 }
 TH1D *GetTH1DFromFile(std::string const &rootFile,

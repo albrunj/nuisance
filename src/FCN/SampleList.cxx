@@ -1224,8 +1224,8 @@ MeasurementBase *CreateSample(nuiskey samplekey) {
       return (new MicroBooNE_BNB_NCpi0_2024_XSec_nu<kAllNCpi0>(samplekey));
     } else if ( !name.compare("MicroBooNE_BNB_NumuCC0PiNp_2025_XSec_nu") ) {
       return ( new MicroBooNE_BNB_NumuCC0PiNp_2025_XSec_nu(samplekey) );
-    } else if (!name.compare("MicroBooNE_BNB_NumuCC1Pipm_2025_Xsec_nu")){
-      return ( new MicroBooNE_BNB_NumuCC1Pipm_2025_xsec_nu(samplekey) );
+    } else if (!name.compare("MicroBooNE_BNB_NumuCC1Pipm_2025_XSec_nu")){
+      return ( new MicroBooNE_BNB_NumuCC1Pipm_2025_XSec_nu(samplekey) );
     } else
 
 #endif
