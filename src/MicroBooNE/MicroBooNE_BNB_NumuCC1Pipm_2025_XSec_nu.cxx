@@ -376,22 +376,9 @@ void MicroBooNE_BNB_NumuCC1Pipm_2025_XSec_nu::FillHistograms() {
 }
 
 void MicroBooNE_BNB_NumuCC1Pipm_2025_XSec_nu::ConvertEventRates() {
-  //trouble shooting
-  std::cout << "Before NEvents = " << fNEvents << std::endl;
-  std::cout << "Before Raw MC integral = " << fMCHist->Integral() << std::endl;
-  std::cout << "Before Width integral = " << fMCHist->Integral("width") << std::endl;
-  std::cout << "Before Scale factor = " << fScaleFactor << std::endl;
-  std::cout << "before After AC integral = " << fMCHistWithAC->Integral() << std::endl;
 
   // Do the standard conversion
   Measurement1D::ConvertEventRates();
-
-  //trouble shooting
-  std::cout << "after NEvents = " << fNEvents << std::endl;
-  std::cout << "after Raw MC integral = " << fMCHist->Integral() << std::endl;
-  std::cout << "after Width integral = " << fMCHist->Integral("width") << std::endl;
-  std::cout << "after Scale factor = " << fScaleFactor << std::endl;
-  std::cout << "after After AC integral = " << fMCHistWithAC->Integral() << std::endl;
 
   // Clone the binning from the MC histogram
   fMCHistWithAC.reset(
