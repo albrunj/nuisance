@@ -104,11 +104,17 @@ MicroBooNE_BNB_NumuCC1Pipm_2025_XSec_nu
   temp_cov_matrix.Invert();
   covar = MicroBooNEHelper::to_symmetric_matrix( temp_cov_matrix );
 
-  //fDecomp = StatUtils::GetDecomp( fFullCovar );
+  fDecomp = StatUtils::GetDecomp( fFullCovar );
+  if ( !fDecomp ) {
+    NUIS_ABORT( "Failed to compute Cholesky decomposition of covariance matrix" );
+  }
+  
+  /*
   TDecompChol chol( *fFullCovar );
   chol.Decompose();
   fDecomp = new TMatrixDSym( fFullCovar->GetNrows(),
     chol.GetU().GetMatrixArray(), "" );
+  */
 
   // Push the diagonals of fFullCovar onto the data histogram
   StatUtils::SetDataErrorFromCov( fDataHist, fFullCovar, 1.0, false );
@@ -145,13 +151,15 @@ MicroBooNE_BNB_NumuCC1Pipm_2025_XSec_nu
 bool MicroBooNE_BNB_NumuCC1Pipm_2025_XSec_nu::isSignal( FitEvent* event ) {
   // PDG codes of interest
   const int MUON = 13;
+  const int ANTI_MUON = -13;
   const int MUON_NEUTRINO = 14;
+  const int ANTI_MUON_NEUTRINO = -14;
   const int PROTON = 2212;
   const int PION_PLUS = 211;
   const int PION_MINUS = -211;
 
   // Require the event to be a numu CC inclusive interaction
-  if ( !SignalDef::isCCINC(event, MUON_NEUTRINO, EnuMin, EnuMax) ) return false;
+  if ( !SignalDef::isCCINC(event, MUON_NEUTRINO, EnuMin, EnuMax) && !SignalDef::isCCINC(event, ANTI_MUON_NEUTRINO, EnuMin, EnuMax) ) return false;
 
   // Require exactly one charged pion in the final state
   int npi = event->NumFSParticle(PION_PLUS)
@@ -161,6 +169,11 @@ bool MicroBooNE_BNB_NumuCC1Pipm_2025_XSec_nu::isSignal( FitEvent* event ) {
 
   // Reject events with neutral pions of any momenta
   if (event->NumFSParticle(111) != 0) return false;
+  if (event->NumFSParticle(-111) != 0) return false;
+
+  //reject events with kaons of any momenta
+  if (event->NumFSParticle(321) != 0) return false;
+  if (event->NumFSParticle(-321) != 0) return false;
 
   // Impose kinematic limits in the signal definition
   double p_mu = event->GetHMFSParticle( MUON )->fP.Vect().Mag(); // MeV
@@ -173,13 +186,19 @@ bool MicroBooNE_BNB_NumuCC1Pipm_2025_XSec_nu::isSignal( FitEvent* event ) {
   }
 
   // The muon momentum must be at least 150 MeV/c
-  if ( p_mu < 150.) return false;
+  if ( p_mu <= 150.) return false;
 
   // The pion momentum must be higher than 100 MeV/c
-  if ( p_pi < 100. ) return false;
+  if ( p_pi <= 100. ) return false;
 
   //angle between the muon and pion must be less than 2.65 radians
-  TVector3 p3_mu = event->GetHMFSParticle( MUON )->fP.Vect();
+  TVector3 p3_mu;
+  if ( event->NumFSParticle( MUON ) == 1 ) {
+    p3_mu = event->GetHMFSParticle( MUON )->fP.Vect();
+  }
+  else if ( event->NumFSParticle( ANTI_MUON ) == 1 ) {
+    p3_mu = event->GetHMFSParticle( ANTI_MUON )->fP.Vect();
+  }
   TVector3 p3_pi;
     if ( event->NumFSParticle( PION_PLUS ) == 1 ) {
         p3_pi = event->GetHMFSParticle( PION_PLUS )->fP.Vect();
@@ -188,7 +207,7 @@ bool MicroBooNE_BNB_NumuCC1Pipm_2025_XSec_nu::isSignal( FitEvent* event ) {
         p3_pi = event->GetHMFSParticle( PION_MINUS )->fP.Vect();
     }
     double angle_mu_pi = p3_mu.Angle( p3_pi );
-    if ( angle_mu_pi > 2.65 ) return false;
+    if ( angle_mu_pi >= 2.65 ) return false;
 
 
   // If we've made it here, then the current event has passed all of the
@@ -231,28 +250,46 @@ void MicroBooNE_BNB_NumuCC1Pipm_2025_XSec_nu::LoadBinDefinitions() {
     + "/MicroBooNE/BNB_NumuCC1Pipm_2025/bin_defs.txt" );
 
   std::ifstream bin_file( binning_file_name );
+  if ( !bin_file.is_open() ) {
+    NUIS_ABORT( "Could not open bin definitions file " + binning_file_name );
+  }
   std::string dummy_str;
   int bin_type, dummy_int;
-  size_t num_true_bins;
+  size_t num_true_bins = 0u;
 
-  // TODO: add I/O error handling here
-  // Skip the output TDirectoryFile name and the input TTree name
-  bin_file >> dummy_str >> dummy_str >> num_true_bins;
+  if (!(bin_file >> dummy_str >> dummy_str >> num_true_bins)) {
+    NUIS_ABORT( "Could not read number of true bins from bin definitions file "
+      + binning_file_name );
+  }
 
   const std::string delimiter( "&&" );
   for ( size_t tb = 0u; tb < num_true_bins; ++tb ) {
-
-    // Skip the true bin type and block index
-    bin_file >> bin_type >> dummy_int;
+    int bin_type = 0;
+    int dummy_int = 0;
+    if (!(bin_file >> bin_type >> dummy_int)) {
+      NUIS_ABORT( "Could not read bin type and block index from bin definitions file "
+        + binning_file_name );
+    }
 
     // Use two calls to std::getline using a double quote delimiter
     // in order to get the contents of the next double-quoted string
     std::string bin_def;
-    std::getline( bin_file, bin_def, '\"' );
-    std::getline( bin_file, bin_def, '\"' );
+    if ( !std::getline(bin_file >> std::ws, bin_def, '\"') ) {
+      NUIS_ABORT( "Could not read bin definition from bin definitions file "
+        + binning_file_name );
+    }
+    if (!std::getline(bin_file, bin_def, '\"')) {
+      NUIS_ABORT("Failed to read quoted bin definition in: " + binning_file_name);
+    }
 
     // Skip bins of type == 1 (background true bins)
     if ( bin_type == 1 ) continue;
+
+    auto cut_pos = bin_def.find(delimiter);
+    if (cut_pos == std::string::npos) {
+      NUIS_ABORT( "Could not find delimiter '&&' in bin definition: " + bin_def );
+      continue;
+    }
 
     // Skip the text before the first "&&" (here we assume that it is a simple
     // bool for the signal definition)
@@ -327,7 +364,11 @@ void MicroBooNE_BNB_NumuCC1Pipm_2025_XSec_nu::LoadBinDefinitions() {
             else if ( ev->NumFSParticle( PION_MINUS ) == 1 ) {
                 p3pi = ev->GetHMFSParticle( PION_MINUS )->fP.Vect();
             }
-          double theta_mupi = std::acos( p3mu.Dot(p3pi) / p3mu.Mag() / p3pi.Mag() );
+          double denom = p3mu.Mag() * p3pi.Mag();
+          if ( denom == 0. ) return 0.;
+          double cosang = p3mu.Dot(p3pi) / denom;
+          cosang = std::max( -1., std::min( 1., cosang ) );
+          double theta_mupi = std::acos( cosang );
           return theta_mupi;
         };
       }
@@ -415,7 +456,7 @@ double MicroBooNE_BNB_NumuCC1Pipm_2025_XSec_nu::GetLikelihood() {
 
   // Apply Masking to MC if Required.
   if ( fIsMask and fMaskHist ) {
-    NUIS_ERR(FTL, "Bin masks not yet supported by"
+    NUIS_ABORT("Bin masks not yet supported by"
       " the MicroBooNE_BNB_NumuCC1Pipm_2025_XSec_nu sample" );
     //PlotUtils::MaskBins(fMCHist, fMaskHist);
   }
@@ -424,7 +465,7 @@ double MicroBooNE_BNB_NumuCC1Pipm_2025_XSec_nu::GetLikelihood() {
   double stat = 0.;
   if ( fIsChi2 ) {
     if ( fIsNS ) {
-      NUIS_ERR(FTL, "Norm-shape covariance not yet supported by"
+      NUIS_ABORT("Norm-shape covariance not yet supported by"
         " the MicroBooNE_BNB_NumuCC1Pipm_2025_XSec_nu sample" );
     }
     stat = StatUtils::GetChi2FromCov( fDataHist, fMCHistWithAC.get(),
@@ -517,7 +558,7 @@ void MicroBooNE_BNB_NumuCC1Pipm_2025_XSec_nu::PrepareSlices() {
     // by the bin width(s) to obtain a differential xsec each time
     double data_val = fDataHist->GetBinContent( global_bin ) / widths;
     double data_err = fDataHist->GetBinError( global_bin ) / widths;
-    double mc_val = fMCHist->GetBinContent( global_bin ) / widths;
+    double mc_val = fMCHistWithAC->GetBinContent( global_bin ) / widths;
     std::map< int, double > mode_vals;
     for ( int m : fMCHist_Modes->fmodes ) {
       int mode_idx = fMCHist_Modes->ConvertModeToIndex( m );
