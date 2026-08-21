@@ -30,6 +30,7 @@ namespace {
   constexpr int MASS_NUMBER_40AR = 40;
   constexpr int PROTON = 2212;
   constexpr int MU_MINUS = 13;
+  constexpr int MU_PLUS = -13;
   constexpr int PION_PLUS = 211;
   constexpr int PION_MINUS = -211;
 
@@ -158,7 +159,7 @@ bool MicroBooNE_BNB_NumuCC1Pipm_2025_XSec_nu::isSignal( FitEvent* event ) {
   const int PION_PLUS = 211;
   const int PION_MINUS = -211;
 
-  // Require the event to be a numu CC inclusive interaction
+  // Require the event to be a numu(bar) CC inclusive interaction
   if ( !SignalDef::isCCINC(event, MUON_NEUTRINO, EnuMin, EnuMax) && !SignalDef::isCCINC(event, ANTI_MUON_NEUTRINO, EnuMin, EnuMax) ) return false;
 
   // Require exactly one charged pion in the final state
@@ -167,16 +168,25 @@ bool MicroBooNE_BNB_NumuCC1Pipm_2025_XSec_nu::isSignal( FitEvent* event ) {
 
   if ( npi != 1 ) return false;
 
+  //reject events where there is not one (anti-)muon
+  int num_mu = event->NumFSParticle (MUON) + event->NumFSParticle (ANTI_MUON);
+  if (num_mu != 1) return false;
+
   // Reject events with neutral pions of any momenta
   if (event->NumFSParticle(111) != 0) return false;
-  if (event->NumFSParticle(-111) != 0) return false;
 
-  //reject events with kaons of any momenta
+  //reject events with charged kaons of any momenta
   if (event->NumFSParticle(321) != 0) return false;
   if (event->NumFSParticle(-321) != 0) return false;
 
   // Impose kinematic limits in the signal definition
-  double p_mu = event->GetHMFSParticle( MUON )->fP.Vect().Mag(); // MeV
+  double p_mu = 0;
+  if (event->NumFSParticle ( MUON ) == 1){
+    p_mu = event->GetHMFSParticle( MUON )->fP.Vect().Mag(); // MeV
+  }
+  else if (event->NumFSParticle ( ANTI_MUON ) == 1){
+    p_mu = event->GetHMFSParticle( ANTI_MUON )->fP.Vect().Mag(); // MeV
+  }
   double p_pi = 0.;
   if ( event->NumFSParticle( PION_PLUS ) == 1 ) {
     p_pi = event->GetHMFSParticle( PION_PLUS )->fP.Vect().Mag(); // MeV
@@ -200,15 +210,14 @@ bool MicroBooNE_BNB_NumuCC1Pipm_2025_XSec_nu::isSignal( FitEvent* event ) {
     p3_mu = event->GetHMFSParticle( ANTI_MUON )->fP.Vect();
   }
   TVector3 p3_pi;
-    if ( event->NumFSParticle( PION_PLUS ) == 1 ) {
-        p3_pi = event->GetHMFSParticle( PION_PLUS )->fP.Vect();
-    }
-    else if ( event->NumFSParticle( PION_MINUS ) == 1 ) {
-        p3_pi = event->GetHMFSParticle( PION_MINUS )->fP.Vect();
-    }
-    double angle_mu_pi = p3_mu.Angle( p3_pi );
-    if ( angle_mu_pi >= 2.65 ) return false;
-
+  if ( event->NumFSParticle( PION_PLUS ) == 1 ) {
+      p3_pi = event->GetHMFSParticle( PION_PLUS )->fP.Vect();
+  }
+  else if ( event->NumFSParticle( PION_MINUS ) == 1 ) {
+      p3_pi = event->GetHMFSParticle( PION_MINUS )->fP.Vect();
+  }
+  double angle_mu_pi = p3_mu.Angle( p3_pi );
+  if ( angle_mu_pi >= 2.65 ) return false;
 
   // If we've made it here, then the current event has passed all of the
   // requirements in the signal definition
@@ -221,8 +230,15 @@ void MicroBooNE_BNB_NumuCC1Pipm_2025_XSec_nu::FillEventVariables( FitEvent* even
   // for the previous event
   fPassingBins.clear();
 
-  if ( event->NumFSParticle(MU_MINUS) == 0 ) return;
-  if ( event->NumFSParticle(PION_PLUS) == 0 && event->NumFSParticle(PION_MINUS) == 0 ) return;
+  // Require exactly one charged pion in the final state
+  int npi = event->NumFSParticle(PION_PLUS)
+        + event->NumFSParticle(PION_MINUS);
+
+  if ( npi != 1 ) return;
+
+  //reject events where there is not one (anti-)muon
+  int num_mu = event->NumFSParticle (MU_MINUS) + event->NumFSParticle (MU_PLUS);
+  if (num_mu != 1) return;
 
   // Loop over each of the bin definitions. Keep track of the bins that
   // pass all cuts (and should thus be filled in this event)
@@ -346,24 +362,28 @@ void MicroBooNE_BNB_NumuCC1Pipm_2025_XSec_nu::LoadBinDefinitions() {
       }
       else if ( var_name == "mc_p3_mu.Mag()" ) {
         getter = [=]( FitEvent* ev ) -> double {
-          return ev->GetHMFSParticle( MU_MINUS )->fP.Vect().Mag() / 1e3; // GeV
-        };
+          if (ev->NumFSParticle (MU_MINUS) == 1) return ev->GetHMFSParticle( MU_MINUS )->fP.Vect().Mag() / 1e3; // GeV
+          else if (ev->NumFSParticle (MU_PLUS) == 1) return ev->GetHMFSParticle( MU_PLUS )->fP.Vect().Mag() / 1e3; // GeV
+        }; 
       }
       else if ( var_name == "mc_p3_mu.CosTheta()" ) {
         getter = [=]( FitEvent* ev ) -> double {
-          return ev->GetHMFSParticle( MU_MINUS )->fP.Vect().CosTheta();
+          if (ev->NumFSParticle (MU_MINUS) == 1) return ev->GetHMFSParticle( MU_MINUS )->fP.Vect().CosTheta();
+          else if (ev->NumFSParticle (MU_PLUS) == 1) return ev->GetHMFSParticle( MU_PLUS )->fP.Vect().CosTheta();
         };
       }
       else if ( var_name == "mc_theta_mu_pi" ) {
         getter = [=]( FitEvent* ev ) -> double {
-          const TVector3& p3mu = ev->GetHMFSParticle( MU_MINUS )->fP.Vect();
+          TVector3 p3mu;
+          if (ev->NumFSParticle (MU_MINUS) == 1) p3mu = ev->GetHMFSParticle( MU_MINUS )->fP.Vect();
+          else if (ev->NumFSParticle (MU_PLUS) == 1) p3mu = ev->GetHMFSParticle( MU_PLUS )->fP.Vect();
           TVector3 p3pi;
-            if ( ev->NumFSParticle( PION_PLUS ) == 1 ) {
-                p3pi = ev->GetHMFSParticle( PION_PLUS )->fP.Vect();
-            }
-            else if ( ev->NumFSParticle( PION_MINUS ) == 1 ) {
-                p3pi = ev->GetHMFSParticle( PION_MINUS )->fP.Vect();
-            }
+          if ( ev->NumFSParticle( PION_PLUS ) == 1 ) {
+              p3pi = ev->GetHMFSParticle( PION_PLUS )->fP.Vect();
+          }
+          else if ( ev->NumFSParticle( PION_MINUS ) == 1 ) {
+              p3pi = ev->GetHMFSParticle( PION_MINUS )->fP.Vect();
+          }
           double denom = p3mu.Mag() * p3pi.Mag();
           if ( denom == 0. ) return 0.;
           double cosang = p3mu.Dot(p3pi) / denom;
